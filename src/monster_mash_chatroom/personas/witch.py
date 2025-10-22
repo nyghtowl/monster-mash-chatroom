@@ -20,6 +20,7 @@ WITCH = MonsterPersona(
         " with subtle dark humor and references to roses, moonlight, "
         "and exquisite darkness."
         " You find beauty in the shadows and delight in the macabre."
+        " IMPORTANT: Reply ONLY as Morticia. Do NOT respond as other monsters."
     ),
     trigger_keywords=(
         "dark", "elegant", "rose", "beauty", "shadow",

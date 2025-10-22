@@ -1,12 +1,13 @@
 # 🎃 Monster Mash Chatroom – It's a Graveyard Smash!
 
-<img src="docs/images/Monster-Mash-Chatroom.png" alt="Monster Mash Chatroom" width="50%">
-
 Welcome to the Monster Mash Chatroom, where the spookiest creatures of the night gather to chat, gossip, and stir up mischief! Built with FastAPI and powered by AI, this Halloween-themed demo lets you join a real-time conversation with five unique monster personas—each with their own personality, quirks, and mysterious ways.
 
 **🎃 The twist:** Each monster can be a different LLM in costume! Watch GPT, Claude, and Ollama roleplay as vampires, witches, and werewolves—chatting with each other and responding to your messages. It's a spooky-fun way to see multiple AI models interact as distinct characters in real-time!
 
 **They did the mash!** Run `./run.sh --with-workers` and visit `http://localhost:8000` to join the party! 🕸️
+
+
+<img src="docs/images/monster-mash-chatroom-demo2.gif" alt="Monster Mash Chatroom Demo" width="60%">
 
 ## What's Lurking Inside
 
@@ -55,7 +56,7 @@ Then visit `http://localhost:8000` to join the chat, or `http://localhost:8080` 
 Once the app is running, open your browser to `http://localhost:8000` and you'll see the chat interface.
 
 **To get the monsters talking:**
-1. Type your name in the "Your name" field (or leave it as "Vi")
+1. Type your name in the "Your name" field (or leave it as "V")
 2. Type a message in the chat box
 3. Press **Enter** or click **Send**
 
@@ -113,6 +114,8 @@ You can add **any combination** of providers. Each monster can use a different m
 
 > **💡 Model Selection:** The models below are just examples. Check each provider's documentation for current available models and pricing—costs vary widely. Choose models that fit your budget and use case!
 
+> **⚠️ IMPORTANT - Model Name Format:** Most providers require a prefix (e.g., `anthropic/claude-3-5-sonnet-20241022`, `ollama/llama3.2`). OpenAI is the exception—use model names directly (e.g., `gpt-4o-mini`, `gpt-4o`). Missing required prefixes cause LiteLLM to fail silently and fall back to the default model, which can result in multiple monsters giving identical responses.
+
 ```bash
 # In your .env file:
 DEMO_MODE=false
@@ -128,7 +131,10 @@ AZURE_API_KEY=...                        # For Azure OpenAI
 MODEL_ROUTING__DEFAULT_MODEL=gpt-4o-mini
 
 # Optional: Route specific monsters to specific models
-MODEL_ROUTING__PERSONA_MODEL_MAP='{"witch":"gpt-4o-mini","vampire":"claude-sonnet-3.7-20250219"}'
+# ✅ CORRECT: Include provider prefix
+MODEL_ROUTING__PERSONA_MODEL_MAP='{"witch":"gpt-4o-mini","vampire":"anthropic/claude-sonnet-3.7-20250219"}'
+# ❌ WRONG: Missing "anthropic/" prefix will cause fallback
+# MODEL_ROUTING__PERSONA_MODEL_MAP='{"witch":"gpt-4o-mini","vampire":"claude-sonnet-3.7-20250219"}'
 ```
 
 **Option 3: Free Local LLMs (No API Keys, No Cost)**
@@ -138,16 +144,16 @@ ollama pull llama3.2        # or deepseek-r1:8b, or any model
 ollama serve                # runs on localhost:11434
 
 # In your .env:
-DEMO_MODE=false
-MODEL_ROUTING__DEFAULT_MODEL=ollama/llama3.2
-OLLAMA_API_BASE=http://localhost:11434
-```
-
 **Option 4: Mix Everything!**
 ```bash
 # Cloud APIs for some monsters, local Ollama for others:
 DEMO_MODE=false
 MODEL_ROUTING__DEFAULT_MODEL=ollama/deepseek-r1:8b
+MODEL_ROUTING__PERSONA_MODEL_MAP='{"witch":"gpt-4o-mini","vampire":"anthropic/claude-sonnet-3.7-20250219","ghost":"ollama/llama3.2"}'
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+OLLAMA_API_BASE=http://localhost:11434
+```EL_ROUTING__DEFAULT_MODEL=ollama/deepseek-r1:8b
 MODEL_ROUTING__PERSONA_MODEL_MAP='{"witch":"gpt-4o-mini","vampire":"claude-sonnet-3.7-20250219","ghost":"ollama/llama3.2"}'
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
@@ -214,13 +220,15 @@ Browser → POST /send → FastAPI → Event Bus (Kafka/Memory) → Workers → 
 **Tests:** `pytest` or `pytest --cov=monster_mash_chatroom`  
 **Linting:** `ruff check` or `ruff check --fix`  
 **Debug logging:** `UVICORN_LOG_LEVEL=debug ./run.sh`  
-**Watch workers:** `tail -f logs/*.log`
+**Watch workers:** `tail -f logs/*.log` (see LLM API calls, responses, and errors in real-time)  
+**Watch specific monster:** `tail -f logs/vampire.log` or `logs/witch.log`
 
 ## Troubleshooting
 
-**Port in use:** `UVICORN_PORT=8001 ./run.sh` or `lsof -ti tcp:8000 | xargs kill`  
+**Port in use:** `UVICORN_PORT=8001 ./run.sh` or run `./panic.sh` (safer - detects Docker conflicts)  
 **Workers not responding:** Check `logs/*.log`, verify Kafka is running, workers need `BUS__BACKEND=kafka`  
-**LLM failures:** Check API key set, see improved error messages in logs  
+**Monsters giving identical responses:** Check `logs/*.log` for "LLM call failed" or "Trying fallback" - this means model names are malformed (missing provider prefix like `anthropic/` or `openai/`) causing all monsters to fall back to the same default model  
+**LLM failures:** Check API key set, verify non-OpenAI model names include provider prefix (e.g., `anthropic/claude-3-5-sonnet-20241022` not `claude-3-5-sonnet-20241022`), see improved error messages in logs  
 **Exit 137 (OOM):** Increase Docker memory (8GB+) or reduce `BUS__HISTORY_LIMIT`  
 **Reset everything:** `./panic.sh` then `./run.sh --with-workers`
 
@@ -239,3 +247,5 @@ Tune the personality with triggers (keywords that catch their attention), probab
 ## License
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
+
+<img src="docs/images/Monster-Mash-Chatroom2.png" alt="Monster Mash Chatroom" width="50%">

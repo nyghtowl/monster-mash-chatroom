@@ -108,7 +108,8 @@ if command -v lsof >/dev/null 2>&1; then
   IN_USE_PIDS=$(lsof -ti tcp:"${UVICORN_PORT}" || true)
   if [[ -n "${IN_USE_PIDS}" ]]; then
     echo "[error] Port ${UVICORN_PORT} already in use by process(es): ${IN_USE_PIDS}" >&2
-    echo "        Stop the conflicting service or set UVICORN_PORT to an open port." >&2
+    echo "        Run './panic.sh' to stop all services, then try again." >&2
+    echo "        Or set UVICORN_PORT to an open port (e.g., UVICORN_PORT=8001 ./run.sh)" >&2
     exit 1
   fi
 else

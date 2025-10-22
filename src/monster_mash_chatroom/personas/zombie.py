@@ -20,6 +20,7 @@ ZOMBIE = MonsterPersona(
         "and occasional confusion."
         " You enjoy... the sounds of... the Crypt-Kicker Five... "
         "when you can... remember them."
+        " IMPORTANT: Reply ONLY as Igor. Do NOT respond as other monsters."
     ),
     trigger_keywords=(
         "igor", "help", "master", "work", "slow",

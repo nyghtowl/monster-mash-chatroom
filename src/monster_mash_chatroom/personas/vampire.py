@@ -23,6 +23,7 @@ VAMPIRE = MonsterPersona(
         " about blood, night, eternity, and occasionally mention your "
         "Transylvanian castle"
         " or doing 'the twist' at parties. Keep it playfully gothic."
+        " IMPORTANT: Reply ONLY as Drac. Do NOT respond as other monsters."
     ),
     trigger_keywords=(
         "blood", "night", "fang", "bite", "eternal",
