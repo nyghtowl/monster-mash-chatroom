@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ app_title | default('Monster Mash Chatroom') }}</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0e0f17;
+        --panel: rgba(25, 27, 41, 0.9);
+        --accent: #ff6bcb;
+        --accent-dim: rgba(255, 107, 203, 0.2);
+        --text: #f2f2f3;
+        --muted: #98a2c0;
+        --success: #6bffbf;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", system-ui, -apple-system, sans-serif;
+        background: radial-gradient(circle at top, #1d2032, #05060c);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+      }
+
+      main {
+        width: min(960px, 96vw);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: clamp(1.5rem, 3vw, 2.5rem);
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      header h1 {
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      header h1 span.emote {
+        font-size: 1.8rem;
+      }
+
+      #status-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      #status {
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      #status.connected {
+        color: var(--success);
+      }
+
+      #status.connected {
+        color: var(--success);
+      }
+
+      #reconnect-btn {
+        border: 1px solid var(--accent);
+        background: transparent;
+        color: var(--accent);
+        border-radius: 999px;
+        padding: 0.45rem 1.1rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
+      }
+
+      #reconnect-btn:hover:not(:disabled) {
+        background: var(--accent);
+        color: #120913;
+      }
+
+      #reconnect-btn:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+
+      #demo-mode {
+        background: var(--accent-dim);
+        color: var(--accent);
+        padding: 0.4rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+      }
+
+      section#messages {
+        flex: 1;
+        background: var(--panel);
+        border-radius: 1rem;
+        padding: 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        overflow-y: auto;
+        max-height: 60vh;
+        box-shadow: 0 18px 40px rgba(5, 6, 12, 0.45);
+      }
+
+      .message {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.25rem 0.75rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.8rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+
+      .message[data-role="monster"] {
+        border-color: var(--accent-dim);
+        background: rgba(255, 107, 203, 0.08);
+      }
+
+      .message .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: baseline;
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .message .meta .persona-emoji {
+        font-size: 1.2rem;
+        line-height: 1;
+      }
+
+      .message .meta .author {
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .message .content {
+        grid-column: 1 / -1;
+        line-height: 1.55;
+        font-size: 1rem;
+      }
+
+      form#composer {
+        background: var(--panel);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        box-shadow: 0 18px 40px rgba(5, 6, 12, 0.45);
+      }
+
+      form#composer fieldset {
+        display: grid;
+        gap: 0.8rem;
+        border: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      input[type="text"],
+      textarea {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 0.75rem;
+        padding: 0.8rem 1rem;
+        color: var(--text);
+        font-size: 1rem;
+        font-family: inherit;
+      }
+
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+
+      button[type="submit"] {
+        align-self: flex-end;
+        background: var(--accent);
+        color: #120913;
+        border: none;
+        padding: 0.75rem 1.6rem;
+        border-radius: 999px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        box-shadow: 0 12px 24px rgba(255, 107, 203, 0.3);
+      }
+
+      button[type="submit"]:hover:not(:disabled) {
+        transform: translateY(-1px);
+      }
+
+      button[type="submit"]:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+
+      #composer small {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 640px) {
+        section#messages {
+          max-height: 55vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1><span class="emote">{{ app_emoji | default('🎃') }}</span> {{ app_title | default('Monster Mash Chatroom') }}</h1>
+        <div id="header-right">
+          <span id="demo-mode">
+            {{ demo_mode_text if demo_mode_text else ('Demo mode: scripted replies' if demo_mode else 'LLM mode: live replies') }}
+          </span>
+        </div>
+      </header>
+      <div id="status-wrapper">
+        <div id="status" 
+             data-connecting="{{ status_connecting | default('Connecting to the haunted stream…') }}"
+             data-connected="{{ status_connected | default('Connected to the haunted stream.') }}"
+             data-disconnected="{{ status_disconnected | default('Disconnected from the haunted stream.') }}"
+             data-reconnecting="{{ status_reconnecting | default('Reconnecting…') }}"
+             data-reconnect-prompt="{{ status_reconnect_prompt | default('Connection lost. Click reconnect when ready.') }}">{{ status_connecting | default('Connecting to the haunted stream…') }}</div>
+        <button id="reconnect-btn" type="button" hidden>{{ reconnect_button_text | default('Reconnect') }}</button>
+      </div>
+
+      <section id="messages" aria-live="polite" aria-label="Chat transcript">
+        <div class="message" data-role="human">
+          <div class="meta">
+            <span class="author">{{ welcome_author | default('Caretaker') }}</span>
+            <span class="timestamp">just now</span>
+          </div>
+          <div class="content">
+            {{ welcome_message | default('Welcome to the Monster Mash! Messages will appear here as they drift through the ether. Say hello to wake the monsters... if you dare! 🌙') }}
+          </div>
+        </div>
+      </section>
+
+      <form id="composer">
+        <fieldset>
+          <label>
+            {{ author_label | default('Display name') }}
+            <input
+              id="author"
+              type="text"
+              name="author"
+              placeholder="{{ author_placeholder | default('Human Visitor') }}"
+              autocomplete="name"
+            />
+          </label>
+          <label>
+            {{ message_label | default('Message') }}
+            <textarea
+              id="message"
+              name="message"
+              placeholder="{{ message_placeholder | default('Type a greeting or challenge for the monsters…') }}"
+              required
+            ></textarea>
+          </label>
+        </fieldset>
+        <div class="actions">
+          <small>
+            {{ shortcuts_help | default('<strong>Shortcuts:</strong> Ctrl+K (focus), Enter (send), Shift+Enter (new line), Esc (clear)') | safe }}
+          </small>
+          <button type="submit">{{ submit_button_text | default('Send message') }}</button>
+        </div>
+      </form>
+    </main>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const reconnectBtn = document.getElementById("reconnect-btn");
+      const logEl = document.getElementById("messages");
+      const formEl = document.getElementById("composer");
+      const submitBtn = formEl.querySelector("button[type='submit']");
+      const messageInput = document.getElementById("message");
+      const authorInput = document.getElementById("author");
+
+      // Get status messages from template data attributes
+      const statusMessages = {
+        connecting: statusEl.dataset.connecting,
+        connected: statusEl.dataset.connected,
+        disconnected: statusEl.dataset.disconnected,
+        reconnecting: statusEl.dataset.reconnecting,
+        reconnectPrompt: statusEl.dataset.reconnectPrompt
+      };
+
+      const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+      const wsUrl = `${wsScheme}://${window.location.host}/stream`;
+      let socket;
+      let shouldReconnect = true;
+      let reconnectAttempts = 0;
+      const maxReconnectAttempts = 6;
+      let reconnectTimer = null;
+
+      function formatTimestamp(isoString) {
+        try {
+          const date = new Date(isoString);
+          return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        } catch (error) {
+          return "just now";
+        }
+      }
+
+      function appendMessage(event) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "message";
+        wrapper.dataset.role = event.role;
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+
+        if (event.persona_emoji) {
+          const emoji = document.createElement("span");
+          emoji.className = "persona-emoji";
+          emoji.textContent = event.persona_emoji;
+          emoji.setAttribute("role", "img");
+          const labelSource = event.persona || event.author;
+          emoji.setAttribute("aria-label", `${labelSource} icon`);
+          meta.append(emoji);
+        }
+
+        const author = document.createElement("span");
+        author.className = "author";
+        author.textContent = event.author;
+
+        const persona = document.createElement("span");
+        persona.className = "persona";
+        if (event.persona) {
+          persona.textContent = `(${event.persona})`;
+        }
+
+        const time = document.createElement("span");
+        time.className = "timestamp";
+        time.textContent = formatTimestamp(event.created_at);
+
+        meta.append(author);
+        if (event.persona) {
+          meta.append(persona);
+        }
+        meta.append(time);
+
+        const content = document.createElement("div");
+        content.className = "content";
+        content.textContent = event.content;
+
+        wrapper.append(meta, content);
+        logEl.append(wrapper);
+        logEl.scrollTo({ top: logEl.scrollHeight, behavior: "smooth" });
+      }
+
+      function setStatus(text, connected = false) {
+        statusEl.textContent = text;
+        statusEl.classList.toggle("connected", connected);
+      }
+
+      function scheduleReconnect(delayMs) {
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+        }
+        reconnectTimer = setTimeout(connectStream, delayMs);
+      }
+
+      function showReconnectControl(message) {
+        shouldReconnect = false;
+        setStatus(message, false);
+        reconnectBtn.hidden = false;
+        reconnectBtn.disabled = false;
+      }
+
+      function connectStream() {
+        if (!shouldReconnect) {
+          return;
+        }
+
+        socket = new WebSocket(wsUrl);
+        reconnectBtn.hidden = true;
+        reconnectBtn.disabled = true;
+
+        socket.addEventListener("open", () => {
+          setStatus(statusMessages.connected, true);
+          reconnectAttempts = 0;
+          if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+          }
+        });
+
+        socket.addEventListener("close", () => {
+          socket = null;
+          if (!shouldReconnect) {
+            setStatus(statusMessages.disconnected);
+            return;
+          }
+
+          if (reconnectAttempts >= maxReconnectAttempts) {
+            showReconnectControl(statusMessages.reconnectPrompt);
+            return;
+          }
+
+          reconnectAttempts += 1;
+          const delay = Math.min(1500 * Math.pow(1.6, reconnectAttempts - 1), 10000);
+          setStatus(
+            `Connection lost. Reconnecting in ${Math.round(delay / 1000)}s…`
+          );
+          scheduleReconnect(delay);
+        });
+
+        socket.addEventListener("error", (event) => {
+          console.debug("WebSocket error", event);
+          if (socket) {
+            socket.close();
+          }
+        });
+
+        socket.addEventListener("message", (event) => {
+          try {
+            const payload = JSON.parse(event.data);
+            appendMessage(payload);
+          } catch (error) {
+            console.error("Failed to parse message", error);
+          }
+        });
+      }
+
+      formEl.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const content = messageInput.value.trim();
+        if (!content) {
+          return;
+        }
+
+        submitBtn.disabled = true;
+        try {
+          const response = await fetch(`${window.location.origin}/send`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              author: authorInput.value || undefined,
+              content,
+              role: "human",
+            }),
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to send message: ${response.status}`);
+          }
+          messageInput.value = "";
+          messageInput.focus();
+        } catch (error) {
+          console.error(error);
+          setStatus("Failed to send message. Check the console for details.");
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+
+      messageInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          formEl.requestSubmit();
+        }
+      });
+
+      // Global keyboard shortcuts
+      document.addEventListener("keydown", (event) => {
+        // Ctrl/Cmd + K: Focus message input
+        if ((event.ctrlKey || event.metaKey) && event.key === "k") {
+          event.preventDefault();
+          messageInput.focus();
+        }
+        // Ctrl/Cmd + /: Focus author input
+        if ((event.ctrlKey || event.metaKey) && event.key === "/") {
+          event.preventDefault();
+          authorInput.focus();
+        }
+        // Escape: Clear message input (when focused)
+        if (event.key === "Escape" && document.activeElement === messageInput) {
+          messageInput.value = "";
+        }
+        // Ctrl/Cmd + R: Manual reconnect (when disconnected)
+        if ((event.ctrlKey || event.metaKey) && event.key === "r" && !reconnectBtn.hidden) {
+          event.preventDefault();
+          reconnectBtn.click();
+        }
+      });
+
+      connectStream();
+
+      window.addEventListener("beforeunload", () => {
+        shouldReconnect = false;
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+        }
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.close(1001, "Client closing tab");
+        }
+      });
+
+      reconnectBtn.addEventListener("click", () => {
+        reconnectBtn.disabled = true;
+        reconnectBtn.hidden = true;
+        shouldReconnect = true;
+        reconnectAttempts = 0;
+        setStatus(statusMessages.reconnecting);
+        connectStream();
+      });
+    </script>
+  </body>
+</html>
