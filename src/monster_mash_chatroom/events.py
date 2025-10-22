@@ -24,7 +24,11 @@ logger = logging.getLogger(__name__)
 
 
 class EventBus:
-    """Abstract interface for publishing and subscribing to chat messages."""
+    """Abstract interface for publishing and subscribing to chat messages.
+    
+    This abstraction lets us swap between Kafka (production/distributed) and
+    in-memory (local development) without changing application code.
+    """
 
     async def start(self) -> None:  # pragma: no cover - interface hook
         raise NotImplementedError

@@ -27,7 +27,9 @@ logger = logging.getLogger(__name__)
 async def _ensure_topic(settings: Settings) -> None:
     bus_settings = settings.bus
     if bus_settings.backend != BusBackend.KAFKA:
-        logger.debug("Skipping topic ensure for backend=%s", bus_settings.backend)
+        logger.debug(
+            "Skipping topic ensure for backend=%s", bus_settings.backend
+        )
         return
 
     kafka_settings = bus_settings.kafka
@@ -61,11 +63,17 @@ async def _ensure_topic(settings: Settings) -> None:
 async def run_persona_worker(
     persona: MonsterPersona, settings: Settings
 ) -> None:
-    """Stream messages for a persona and publish replies when triggered."""
+    """Stream messages for a persona and publish replies when triggered.
+    
+    This is the heart of the monster behavior: each persona runs as a separate
+    process, consuming messages from Kafka and deciding whether to respond based
+    on triggers, probability, and recent conversation history.
+    """
     bus_settings = settings.bus
     if bus_settings.backend != BusBackend.KAFKA:
         logger.warning(
-            "Persona %s worker disabled: message bus backend '%s' is not Kafka",
+            "Persona %s worker disabled: message bus backend '%s' is not "
+            "Kafka",
             persona.key,
             bus_settings.backend,
         )
@@ -111,11 +119,15 @@ async def run_persona_worker(
         return
     logger.info("Worker started for persona=%s", persona.key)
     try:
+        # Keep recent conversation history for context-aware responses
+        # (max 20 messages to avoid memory bloat)
         backlog = deque[ChatMessage](maxlen=20)
         async for record in consumer:
             payload = record.value.decode("utf-8")
             message = ChatMessage.model_validate_json(payload)
             backlog.append(message)
+            # Prevent monsters from responding to their own messages
+            # (without this, they'd get into infinite self-reply loops)
             if (
                 message.role == AuthorKind.MONSTER
                 and message.persona == persona.key
@@ -134,6 +146,7 @@ async def run_persona_worker(
                 )
                 continue
             context = list(backlog)
+            # Simulate the monster "reading" the message (makes responses feel natural)
             read_delay = persona.reading_delay_seconds(
                 message, backlog_snapshot
             )
@@ -151,6 +164,7 @@ async def run_persona_worker(
                 content=reply,
                 persona_emoji=persona.emoji or None,
             )
+            # Simulate "typing" time (longer messages = longer delay)
             typing_delay = persona.typing_delay_seconds(reply)
             if typing_delay > 0:
                 await asyncio.sleep(typing_delay)

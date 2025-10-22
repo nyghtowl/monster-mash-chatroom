@@ -34,6 +34,15 @@ async def generate_persona_reply(
     history: Iterable[ChatMessage],
     settings: Settings | None = None,
 ) -> str:
+    """Generate a reply from a monster persona.
+    
+    Fallback strategy (in order):
+    1. Try the persona's configured LLM model
+    2. If that fails, try the DEFAULT_MODEL
+    3. If that fails (or demo_mode=true), use canned responses
+    
+    This ensures the chatroom always works, even if APIs are down.
+    """
     if settings is None:
         settings = get_settings()
     history_list: list[ChatMessage] = list(history)
@@ -120,6 +129,8 @@ def _demo_reply(
             persona.key,
         )
         return reply
+    # Use message ID as seed for deterministic "randomness"
+    # (same message always gets same reply, but feels varied)
     seed = hash(latest.id) % 999999
     random.seed(seed)
 
@@ -154,9 +165,11 @@ async def _llm_reply(
             "content": persona.system_prompt,
         }
     ]
+    # Build conversation history for LLM context
     for message in history:
         role = "assistant" if message.role == AuthorKind.MONSTER else "user"
         content = message.content
+        # Prefix other monsters' messages so LLM knows who said what
         if message.persona and message.persona != persona.key:
             content = f"[{message.persona}] {content}"
         messages.append({"role": role, "content": content})

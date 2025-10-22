@@ -118,7 +118,7 @@ class Settings(BaseSettings):
         env_nested_delimiter = "__"
         env_file = ".env"
         env_file_encoding = "utf-8"
-        extra = "ignore"  # Allow extra env vars (e.g., OLLAMA_API_BASE for LiteLLM)
+        extra = "ignore"  # Allow extra env vars for LiteLLM
 
 
 @lru_cache

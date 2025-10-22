@@ -1,4 +1,4 @@
-"""FastAPI app providing REST + WebSocket access for the monster mash chatroom."""
+"""FastAPI app for the monster mash chatroom."""
 from __future__ import annotations
 
 import asyncio
@@ -16,6 +16,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.websockets import WebSocketState
 
@@ -40,6 +41,13 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+
+    # Mount static files (CSS, etc.)
+    application.mount(
+        "/static",
+        StaticFiles(directory=str(_BASE_DIR / "templates")),
+        name="static",
     )
 
     @application.on_event("startup")
@@ -79,24 +87,29 @@ def create_app() -> FastAPI:
                 "app_emoji": "🎃",
                 "welcome_author": "Caretaker",
                 "welcome_message": (
-                    "Welcome to the Monster Mash! Messages will appear here as they "
-                    "drift through the ether. Say hello to wake the monsters... if you dare! 🌙"
+                    "Welcome to the Monster Mash! Messages will appear here "
+                    "as they drift through the ether. Say hello to wake the "
+                    "monsters... if you dare! 🌙"
                 ),
                 "author_label": "Display name",
                 "author_placeholder": "Human Visitor",
                 "message_label": "Message",
-                "message_placeholder": "Type a greeting or challenge for the monsters…",
+                "message_placeholder": (
+                    "Type a greeting or challenge for the monsters…"
+                ),
                 "submit_button_text": "Send message",
                 "reconnect_button_text": "Reconnect",
                 "shortcuts_help": (
-                    "<strong>Shortcuts:</strong> Ctrl+K (focus), Enter (send), "
-                    "Shift+Enter (new line), Esc (clear)"
+                    "<strong>Shortcuts:</strong> Ctrl+K (focus), "
+                    "Enter (send), Shift+Enter (new line), Esc (clear)"
                 ),
                 "status_connecting": "Connecting to the haunted stream…",
                 "status_connected": "Connected to the haunted stream.",
                 "status_disconnected": "Disconnected from the haunted stream.",
                 "status_reconnecting": "Reconnecting…",
-                "status_reconnect_prompt": "Connection lost. Click reconnect when ready.",
+                "status_reconnect_prompt": (
+                    "Connection lost. Click reconnect when ready."
+                ),
             },
         )
 

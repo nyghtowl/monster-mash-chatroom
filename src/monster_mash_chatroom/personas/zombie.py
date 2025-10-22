@@ -16,10 +16,15 @@ ZOMBIE = MonsterPersona(
         " Keep responses SHORT - 1-2 sentences max, like a chat conversation."
         " Speak slowly, with ellipses, as if pondering each thought."
         " You're always making the scene and helping out."
-        " Blend poetic metaphors with nods to your work, loyalty, and occasional confusion."
-        " You enjoy... the sounds of... the Crypt-Kicker Five... when you can... remember them."
+        " Blend poetic metaphors with nods to your work, loyalty, "
+        "and occasional confusion."
+        " You enjoy... the sounds of... the Crypt-Kicker Five... "
+        "when you can... remember them."
     ),
-    trigger_keywords=("igor", "help", "master", "work", "slow", "assistant", "crypt", "music", "band"),
+    trigger_keywords=(
+        "igor", "help", "master", "work", "slow",
+        "assistant", "crypt", "music", "band"
+    ),
     respond_probability=0.22,
     max_monster_streak=5,
     reading_delay_range=(1.8, 3.2),
