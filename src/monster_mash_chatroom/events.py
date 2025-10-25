@@ -64,14 +64,17 @@ class InMemoryEventBus(EventBus):
 
     async def publish(self, message: ChatMessage) -> None:
         self._history.append(message)
+        # Track slow/dead subscribers to prune them
+        # Prevents one slow client from blocking all others
         dead: list[asyncio.Queue[ChatMessage]] = []
         for queue in self._subscribers:
             try:
-                queue.put_nowait(message)
+                queue.put_nowait(message)  # Non-blocking push
             except asyncio.QueueFull:
-                dead.append(queue)
+                dead.append(queue)  # Queue full = client too slow
         if dead:
             logger.debug("Pruned %d slow subscribers", len(dead))
+        # Remove slow subscribers after iteration (avoid modifying during loop)
         for queue in dead:
             self._subscribers.discard(queue)
 
@@ -149,6 +152,8 @@ class KafkaEventBus(EventBus):
         self._consumer_task = asyncio.create_task(self._consume_loop())
 
     async def stop(self) -> None:
+        # Graceful shutdown: cancel task then wait for cleanup
+        # suppress CancelledError since cancellation is intentional
         if self._consumer_task:
             self._consumer_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -197,6 +202,8 @@ class KafkaEventBus(EventBus):
                 payload = json.loads(record.value.decode("utf-8"))
                 message = ChatMessage.model_validate(payload)
             except ValueError as exc:
+                # Catch both JSON decode errors and Pydantic validation errors
+                # Log and skip malformed messages instead of crashing consumer
                 logger.exception(
                     "Failed to decode chat message", exc_info=exc
                 )
@@ -210,6 +217,8 @@ class KafkaEventBus(EventBus):
             )
 
     async def _fan_out(self, message: ChatMessage) -> None:
+        # Copy queue list under lock to avoid race conditions
+        # Release lock quickly to prevent blocking other operations
         async with self._lock:
             queues = list(self._subscriber_queues)
         dead: list[asyncio.Queue[ChatMessage]] = []
@@ -219,6 +228,8 @@ class KafkaEventBus(EventBus):
             except asyncio.QueueFull:
                 dead.append(queue)
         if dead:
+            # Re-acquire lock for cleanup to ensure thread safety
+            # Check membership before removal (queue might already be gone)
             async with self._lock:
                 for queue in dead:
                     if queue in self._subscriber_queues:

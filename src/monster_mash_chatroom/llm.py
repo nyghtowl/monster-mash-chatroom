@@ -45,6 +45,7 @@ async def generate_persona_reply(
     """
     if settings is None:
         settings = get_settings()
+    # Convert iterable to list for multiple iterations and length checks
     history_list: list[ChatMessage] = list(history)
     if settings.demo_mode or litellm is None:
         logger.info(
@@ -115,6 +116,7 @@ async def generate_persona_reply(
 def _demo_reply(
     persona: MonsterPersona, history: Iterable[ChatMessage]
 ) -> str:
+    """Generate a deterministic demo reply without calling an LLM."""
     as_list = list(history)
     latest = as_list[-1] if as_list else None
     if latest is None:
@@ -130,8 +132,9 @@ def _demo_reply(
         )
         return reply
     # Use message ID as seed for deterministic "randomness"
-    # (same message always gets same reply, but feels varied)
-    seed = hash(latest.id) % 999999
+    # Same input message always produces same reply (good for testing/demos)
+    # but different messages get varied responses (feels natural)
+    seed = hash(latest.id) % 999999  # Modulo keeps seed in reasonable range
     random.seed(seed)
 
     # More natural fallback responses without "hums"
@@ -151,6 +154,7 @@ async def _llm_reply(
     history: Iterable[ChatMessage],
     settings: Settings,
 ) -> str:
+    """Call the LLM with persona prompt and conversation history to generate a reply."""
     if litellm is None:  # pragma: no cover - defensive guard
         raise LiteLLMException("LiteLLM is not available")
     model_name = settings.model_routing.for_persona(persona.key)
@@ -169,7 +173,8 @@ async def _llm_reply(
     for message in history:
         role = "assistant" if message.role == AuthorKind.MONSTER else "user"
         content = message.content
-        # Prefix other monsters' messages so LLM knows who said what
+        # Prefix other monsters' messages so LLM can distinguish speakers
+        # Without this, LLM might confuse other monsters' words with its own
         if message.persona and message.persona != persona.key:
             content = f"[{message.persona}] {content}"
         messages.append({"role": role, "content": content})

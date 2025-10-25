@@ -24,6 +24,7 @@ class MonsterPersona:
     def should_respond(
         self, message: ChatMessage, backlog: Sequence[ChatMessage]
     ) -> bool:
+        """Decide whether this persona should respond based on triggers, probability, and conversation flow."""
         if message.persona == self.key:
             return False
 
@@ -53,6 +54,7 @@ class MonsterPersona:
         return random.random() < monster_probability
 
     def format_demo_reply(self, message: ChatMessage) -> str:
+        """Generate a canned demo reply for this persona."""
         template = (
             "{name} senses spectral winds in '{snippet}'"
             " and replies with eerie flair."
@@ -63,6 +65,7 @@ class MonsterPersona:
     def reading_delay_seconds(
         self, message: ChatMessage, backlog: Sequence[ChatMessage]
     ) -> float:
+        """Calculate reading delay based on message length and conversation context."""
         base = random.uniform(*self.reading_delay_range)
         length_bonus = min(len(message.content) / 160, 2.0)
         streak_bonus = 0.0
@@ -71,6 +74,7 @@ class MonsterPersona:
         return base + length_bonus + streak_bonus
 
     def typing_delay_seconds(self, reply: str) -> float:
+        """Calculate typing delay based on reply length."""
         base = random.uniform(*self.typing_delay_range)
         length_bonus = min(len(reply) / 120, 3.0)
         return base + length_bonus

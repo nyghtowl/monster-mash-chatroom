@@ -42,3 +42,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Video walkthrough documentation (internal use)
+VIDEO_WALKTHROUGH.md
+VIDEO_WALKTHROUGH_SHORT.md
+CODE_SNIPPETS.md

@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 async def _ensure_topic(settings: Settings) -> None:
+    """Create the Kafka topic if it doesn't exist (no-op for in-memory mode)."""
     bus_settings = settings.bus
     if bus_settings.backend != BusBackend.KAFKA:
         logger.debug(
@@ -96,10 +97,12 @@ async def run_persona_worker(
     await _ensure_topic(settings)
 
     await producer.start()
+    # Retry consumer start up to 5 times - topic might not exist yet
+    # or might not have propagated across Kafka cluster
     for attempt in range(5):
         try:
             await consumer.start()
-            break
+            break  # Success - exit retry loop
         except UnknownTopicOrPartitionError as exc:
             logger.warning(
                 "Consumer failed to see topic '%s' (attempt %d/5): %s",
@@ -120,7 +123,10 @@ async def run_persona_worker(
     logger.info("Worker started for persona=%s", persona.key)
     try:
         # Keep recent conversation history for context-aware responses
-        # (max 20 messages to avoid memory bloat)
+        # Limited to 20 messages to:
+        # 1. Prevent unbounded memory growth
+        # 2. Keep LLM context window manageable
+        # 3. Focus on recent conversation (older messages auto-evicted)
         backlog = deque[ChatMessage](maxlen=20)
         async for record in consumer:
             payload = record.value.decode("utf-8")
@@ -137,6 +143,8 @@ async def run_persona_worker(
                     message.id,
                 )
                 continue
+            # Create immutable snapshot for thread-safe decision making
+            # Prevents backlog changes during async should_respond() evaluation
             backlog_snapshot = tuple(backlog)
             if not persona.should_respond(message, backlog_snapshot):
                 logger.debug(
@@ -184,6 +192,7 @@ async def run_persona_worker(
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse command-line arguments to select which monster persona to run."""
     parser = argparse.ArgumentParser(
         description="Run a monster persona worker"
     )
@@ -192,6 +201,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 async def main_async(argv: Sequence[str] | None = None) -> None:
+    """Async entry point that runs the selected persona worker."""
     args = parse_args(argv)
     settings = get_settings()
     persona = PERSONA_REGISTRY[args.persona]
@@ -199,6 +209,7 @@ async def main_async(argv: Sequence[str] | None = None) -> None:
 
 
 def main() -> None:
+    """CLI entry point for running a monster persona worker process."""
     logging.basicConfig(level=logging.INFO)
     asyncio.run(main_async())
 

@@ -33,6 +33,7 @@ class SendMessageRequest(BaseModel):
     persona: str | None = None
 
     def to_chat_message(self) -> ChatMessage:
+        """Convert the request to a ChatMessage with metadata."""
         return ChatMessage(
             author=self.author or "Anonymous",
             role=self.role,

@@ -66,7 +66,8 @@ def create_app() -> FastAPI:
 
     async def get_bus() -> EventBus:
         """Resolve the shared event bus instance for request handlers."""
-
+        # Retry logic handles race condition between startup event
+        # and first request - event bus might not be ready yet
         for _attempt in range(50):
             bus = getattr(application.state, "event_bus", None)
             if bus is not None:
