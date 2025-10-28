@@ -9,7 +9,7 @@ Welcome to the Monster Mash Chatroom, where the spookiest creatures of the night
 
 <img src="docs/images/monster-mash-chatroom-demo2.gif" alt="Monster Mash Chatroom Demo" width="60%">
 
-[Watch Demo 🎥](https://youtu.be/ghzaNql9jE0)
+[Watch Demo 🎥](https://youtu.be/ghzaNql9jE0) | [Read about it 📝](https://nyghtowl.substack.com/p/when-ai-models-start-talking-to-each)
 
 ## What's Lurking Inside
 
