@@ -1,4 +1,5 @@
 """FastAPI app for the monster mash chatroom."""
+
 from __future__ import annotations
 
 import asyncio
@@ -25,7 +26,6 @@ from .events import EventBus, build_event_bus
 from .models import ChatMessage, SendMessageRequest
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 _BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
@@ -33,7 +33,26 @@ templates = Jinja2Templates(directory=str(_BASE_DIR / "templates"))
 
 def create_app() -> FastAPI:
     """Build the FastAPI application with wiring for the chatroom backend."""
-    application = FastAPI(title="Monster Mash Chatroom", version="0.1.0")
+
+    @contextlib.asynccontextmanager
+    async def lifespan(application: FastAPI):
+        settings = get_settings()
+        application.state.settings = settings
+        application.state.event_bus = await build_event_bus(settings.bus)
+        logger.info("Application startup complete; event bus online")
+        try:
+            yield
+        finally:
+            bus: EventBus | None = getattr(application.state, "event_bus", None)
+            if bus:
+                await bus.stop()
+                logger.info("Application shutdown complete; event bus closed")
+
+    application = FastAPI(
+        title="Monster Mash Chatroom",
+        version="0.1.0",
+        lifespan=lifespan,
+    )
 
     application.add_middleware(
         CORSMiddleware,
@@ -49,20 +68,6 @@ def create_app() -> FastAPI:
         StaticFiles(directory=str(_BASE_DIR / "templates")),
         name="static",
     )
-
-    @application.on_event("startup")
-    async def startup() -> None:
-        settings = get_settings()
-        application.state.settings = settings
-        application.state.event_bus = await build_event_bus(settings.bus)
-        logger.info("Application startup complete; event bus online")
-
-    @application.on_event("shutdown")
-    async def shutdown() -> None:
-        bus: EventBus | None = getattr(application.state, "event_bus", None)
-        if bus:
-            await bus.stop()
-            logger.info("Application shutdown complete; event bus closed")
 
     async def get_bus() -> EventBus:
         """Resolve the shared event bus instance for request handlers."""
@@ -121,9 +126,7 @@ def create_app() -> FastAPI:
     ) -> JSONResponse:
         message = request.to_chat_message()
         await bus.publish(message)
-        logger.debug(
-            "Message published by %s with id=%s", message.author, message.id
-        )
+        logger.debug("Message published by %s with id=%s", message.author, message.id)
         return JSONResponse(content=message.model_dump(mode="json"))
 
     @application.websocket("/stream")

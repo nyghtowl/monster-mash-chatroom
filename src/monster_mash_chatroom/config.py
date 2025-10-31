@@ -1,4 +1,5 @@
 """Runtime configuration for the Monster Mash Chatroom demo."""
+
 from __future__ import annotations
 
 import json
@@ -25,9 +26,7 @@ class KafkaBusSettings(BaseModel):
 
     @field_validator("brokers", mode="before")
     @classmethod
-    def split_brokers(
-        cls, value: list[str] | dict[str, str] | str | None
-    ) -> list[str]:
+    def split_brokers(cls, value: list[str] | dict[str, str] | str | None) -> list[str]:
         raw_candidates: list[str]
         if isinstance(value, str):
             raw_candidates = value.split(",")

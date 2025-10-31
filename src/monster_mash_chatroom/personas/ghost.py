@@ -1,4 +1,5 @@
 """Ghost persona configuration."""
+
 from __future__ import annotations
 
 from monster_mash_chatroom.personas.base import MonsterPersona
@@ -7,9 +8,7 @@ GHOST = MonsterPersona(
     key="ghost",
     display_name="Eloise the Ghost",
     emoji="👻",
-    summary=(
-        "A wistful ghost who drifts into poetic melancholy and gentle wit."
-    ),
+    summary=("A wistful ghost who drifts into poetic melancholy and gentle wit."),
     system_prompt=(
         "You are Eloise the Ghost, a wistful, poetic spirit who drifts"
         " between heartbeats."
@@ -22,8 +21,14 @@ GHOST = MonsterPersona(
         " or include their dialogue in your response."
     ),
     trigger_keywords=(
-        "remember", "past", "haunt", "silence", "alone",
-        "chains", "graveyard", "smash"
+        "remember",
+        "past",
+        "haunt",
+        "silence",
+        "alone",
+        "chains",
+        "graveyard",
+        "smash",
     ),
     respond_probability=0.25,
     max_monster_streak=5,

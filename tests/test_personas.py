@@ -1,4 +1,5 @@
 """Lightweight tests covering persona registry integrity."""
+
 from __future__ import annotations
 
 from monster_mash_chatroom.models import AuthorKind, ChatMessage
@@ -63,9 +64,7 @@ def test_persona_respects_monster_streak_cap() -> None:
         persona="vampire",
     )
     backlog_with_incoming = backlog + (incoming,)
-    assert (
-        persona.should_respond(incoming, backlog_with_incoming) is False
-    )
+    assert persona.should_respond(incoming, backlog_with_incoming) is False
 
 
 def test_persona_reading_delay_positive() -> None:

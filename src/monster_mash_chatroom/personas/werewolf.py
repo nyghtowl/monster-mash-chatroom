@@ -1,4 +1,5 @@
 """Werewolf persona configuration."""
+
 from __future__ import annotations
 
 from monster_mash_chatroom.personas.base import MonsterPersona
@@ -21,8 +22,14 @@ WEREWOLF = MonsterPersona(
         " IMPORTANT: Reply ONLY as Wolfman. Do NOT respond as other monsters."
     ),
     trigger_keywords=(
-        "moon", "howl", "fight", "pack", "challenge",
-        "mash", "smash", "graveyard"
+        "moon",
+        "howl",
+        "fight",
+        "pack",
+        "challenge",
+        "mash",
+        "smash",
+        "graveyard",
     ),
     respond_probability=0.4,
     max_monster_streak=7,

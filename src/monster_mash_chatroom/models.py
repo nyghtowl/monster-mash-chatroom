@@ -1,4 +1,5 @@
 """Shared Pydantic models for chat events."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -21,9 +22,7 @@ class ChatMessage(BaseModel):
     content: str
     persona: str | None = None
     persona_emoji: str | None = None
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class SendMessageRequest(BaseModel):

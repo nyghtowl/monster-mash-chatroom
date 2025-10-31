@@ -1,4 +1,5 @@
 """Witch persona configuration."""
+
 from __future__ import annotations
 
 from monster_mash_chatroom.personas.base import MonsterPersona
@@ -23,8 +24,14 @@ WITCH = MonsterPersona(
         " IMPORTANT: Reply ONLY as Morticia. Do NOT respond as other monsters."
     ),
     trigger_keywords=(
-        "dark", "elegant", "rose", "beauty", "shadow",
-        "moonlight", "death", "mash"
+        "dark",
+        "elegant",
+        "rose",
+        "beauty",
+        "shadow",
+        "moonlight",
+        "death",
+        "mash",
     ),
     respond_probability=0.3,
     max_monster_streak=5,

@@ -1,4 +1,5 @@
 """Zombie persona configuration."""
+
 from __future__ import annotations
 
 from monster_mash_chatroom.personas.base import MonsterPersona
@@ -23,8 +24,15 @@ ZOMBIE = MonsterPersona(
         " IMPORTANT: Reply ONLY as Igor. Do NOT respond as other monsters."
     ),
     trigger_keywords=(
-        "igor", "help", "master", "work", "slow",
-        "assistant", "crypt", "music", "band"
+        "igor",
+        "help",
+        "master",
+        "work",
+        "slow",
+        "assistant",
+        "crypt",
+        "music",
+        "band",
     ),
     respond_probability=0.22,
     max_monster_streak=5,

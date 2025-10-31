@@ -1,4 +1,5 @@
 """Persona definitions and behavior helpers."""
+
 from __future__ import annotations
 
 import random
@@ -29,9 +30,7 @@ class MonsterPersona:
             return False
 
         lowered = message.content.lower()
-        keyword_hit = any(
-            keyword in lowered for keyword in self.trigger_keywords
-        )
+        keyword_hit = any(keyword in lowered for keyword in self.trigger_keywords)
 
         if message.role == AuthorKind.HUMAN:
             if keyword_hit:

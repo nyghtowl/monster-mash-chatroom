@@ -1,4 +1,5 @@
 """Utilities for calling LLMs or generating demo responses."""
+
 from __future__ import annotations
 
 import logging
@@ -21,6 +22,7 @@ except ImportError:  # pragma: no cover - optional dependency missing
 
     class LiteLLMException(Exception):  # type: ignore[override]
         """Placeholder raised when LiteLLM is unavailable."""
+
 else:  # pragma: no cover - executed when LiteLLM is available
     LiteLLMException = getattr(  # type: ignore[assignment]
         litellm_exceptions,
@@ -35,12 +37,12 @@ async def generate_persona_reply(
     settings: Settings | None = None,
 ) -> str:
     """Generate a reply from a monster persona.
-    
+
     Fallback strategy (in order):
     1. Try the persona's configured LLM model
     2. If that fails, try the DEFAULT_MODEL
     3. If that fails (or demo_mode=true), use canned responses
-    
+
     This ensures the chatroom always works, even if APIs are down.
     """
     if settings is None:
@@ -83,9 +85,7 @@ async def generate_persona_reply(
                         persona_model_map={},
                     ),
                 )
-                reply = await _llm_reply(
-                    persona, history_list, fallback_settings
-                )
+                reply = await _llm_reply(persona, history_list, fallback_settings)
                 logger.info(
                     "✅ Fallback LLM success: persona=%s model=%s",
                     persona.key,
@@ -113,9 +113,7 @@ async def generate_persona_reply(
         return _demo_reply(persona, history_list)
 
 
-def _demo_reply(
-    persona: MonsterPersona, history: Iterable[ChatMessage]
-) -> str:
+def _demo_reply(persona: MonsterPersona, history: Iterable[ChatMessage]) -> str:
     """Generate a deterministic demo reply without calling an LLM."""
     as_list = list(history)
     latest = as_list[-1] if as_list else None

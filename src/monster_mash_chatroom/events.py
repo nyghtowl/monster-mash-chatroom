@@ -1,4 +1,5 @@
 """Infrastructure that fans chat messages to Kafka and WebSocket clients."""
+
 from __future__ import annotations
 
 import asyncio
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class EventBus:
     """Abstract interface for publishing and subscribing to chat messages.
-    
+
     This abstraction lets us swap between Kafka (production/distributed) and
     in-memory (local development) without changing application code.
     """
@@ -49,14 +50,18 @@ class EventBus:
 class InMemoryEventBus(EventBus):
     """Fallback event bus when Kafka is unavailable."""
 
-    def __init__(self, history_limit: int = 200):
+    def __init__(
+        self,
+        history_limit: int = 200,
+        subscriber_queue_size: int | None = None,
+    ) -> None:
         self._history: deque[ChatMessage] = deque(maxlen=history_limit)
+        queue_size = subscriber_queue_size or history_limit or 1
+        self._subscriber_queue_size = max(1, queue_size)
         self._subscribers: set[asyncio.Queue[ChatMessage]] = set()
 
     async def start(self) -> None:
-        logger.warning(
-            "Starting InMemoryEventBus – Kafka connection unavailable"
-        )
+        logger.warning("Starting InMemoryEventBus – Kafka connection unavailable")
 
     async def stop(self) -> None:
         self._subscribers.clear()
@@ -79,7 +84,9 @@ class InMemoryEventBus(EventBus):
             self._subscribers.discard(queue)
 
     async def subscribe(self) -> AsyncGenerator[ChatMessage, None]:
-        queue: asyncio.Queue[ChatMessage] = asyncio.Queue()
+        queue: asyncio.Queue[ChatMessage] = asyncio.Queue(
+            maxsize=self._subscriber_queue_size
+        )
         self._subscribers.add(queue)
         try:
             while True:
@@ -100,6 +107,7 @@ class KafkaEventBus(EventBus):
         settings: KafkaBusSettings,
         namespace: str,
         history_limit: int,
+        subscriber_queue_size: int | None,
     ) -> None:
         self._settings = settings
         self._namespace = namespace
@@ -108,29 +116,23 @@ class KafkaEventBus(EventBus):
         self._consumer_task: asyncio.Task[None] | None = None
         self._history: deque[ChatMessage] = deque(maxlen=history_limit)
         self._subscriber_queues: set[asyncio.Queue[ChatMessage]] = set()
+        queue_size = subscriber_queue_size or history_limit or 1
+        self._subscriber_queue_size = max(1, queue_size)
         self._lock = asyncio.Lock()
 
     async def start(self) -> None:
-        logger.info(
-            "Starting KafkaEventBus – brokers=%s", self._settings.brokers
-        )
+        logger.info("Starting KafkaEventBus – brokers=%s", self._settings.brokers)
         try:
             await asyncio.wait_for(self._ensure_topic(), timeout=10)
         except asyncio.TimeoutError as exc:
-            raise KafkaConnectionError(
-                "Timed out while ensuring Kafka topic"
-            ) from exc
-        self._producer = AIOKafkaProducer(
-            bootstrap_servers=self._settings.brokers
-        )
+            raise KafkaConnectionError("Timed out while ensuring Kafka topic") from exc
+        self._producer = AIOKafkaProducer(bootstrap_servers=self._settings.brokers)
         try:
             await asyncio.wait_for(self._producer.start(), timeout=10)
         except (asyncio.TimeoutError, KafkaError, KafkaConnectionError) as exc:
             await self._producer.stop()
             self._producer = None
-            raise KafkaConnectionError(
-                "Failed to start Kafka producer"
-            ) from exc
+            raise KafkaConnectionError("Failed to start Kafka producer") from exc
         self._consumer = AIOKafkaConsumer(
             self._settings.topic,
             bootstrap_servers=self._settings.brokers,
@@ -146,9 +148,7 @@ class KafkaEventBus(EventBus):
             if self._producer is not None:
                 await self._producer.stop()
                 self._producer = None
-            raise KafkaConnectionError(
-                "Failed to start Kafka consumer"
-            ) from exc
+            raise KafkaConnectionError("Failed to start Kafka consumer") from exc
         self._consumer_task = asyncio.create_task(self._consume_loop())
 
     async def stop(self) -> None:
@@ -181,7 +181,9 @@ class KafkaEventBus(EventBus):
         )
 
     async def subscribe(self) -> AsyncGenerator[ChatMessage, None]:
-        queue: asyncio.Queue[ChatMessage] = asyncio.Queue()
+        queue: asyncio.Queue[ChatMessage] = asyncio.Queue(
+            maxsize=self._subscriber_queue_size
+        )
         async with self._lock:
             self._subscriber_queues.add(queue)
         try:
@@ -204,9 +206,7 @@ class KafkaEventBus(EventBus):
             except ValueError as exc:
                 # Catch both JSON decode errors and Pydantic validation errors
                 # Log and skip malformed messages instead of crashing consumer
-                logger.exception(
-                    "Failed to decode chat message", exc_info=exc
-                )
+                logger.exception("Failed to decode chat message", exc_info=exc)
                 continue
             self._history.append(message)
             await self._fan_out(message)
@@ -249,13 +249,10 @@ class KafkaEventBus(EventBus):
             await admin.create_topics([topic])
             logger.info("Created Kafka topic '%s'", self._settings.topic)
         except TopicAlreadyExistsError:
-            logger.debug(
-                "Kafka topic '%s' already exists", self._settings.topic
-            )
+            logger.debug("Kafka topic '%s' already exists", self._settings.topic)
         except IncompatibleBrokerVersion as exc:
             logger.warning(
-                "Kafka broker lacks create-topics API; "
-                "relying on auto-create: %s",
+                "Kafka broker lacks create-topics API; " "relying on auto-create: %s",
                 exc,
             )
         except KafkaError as exc:
@@ -268,8 +265,13 @@ class KafkaEventBus(EventBus):
 async def build_event_bus(settings: MessageBusSettings) -> EventBus:
     """Create the configured event bus, with Kafka or in-memory fallback."""
 
+    queue_capacity = max(1, settings.history_limit)
+
     if settings.backend == BusBackend.IN_MEMORY:
-        bus = InMemoryEventBus(settings.history_limit)
+        bus = InMemoryEventBus(
+            history_limit=settings.history_limit,
+            subscriber_queue_size=queue_capacity,
+        )
         await bus.start()
         logger.info("Using in-memory event bus")
         return bus
@@ -280,7 +282,10 @@ async def build_event_bus(settings: MessageBusSettings) -> EventBus:
             logger.warning(
                 "Kafka backend selected without brokers; using in-memory bus"
             )
-            fallback = InMemoryEventBus(settings.history_limit)
+            fallback = InMemoryEventBus(
+                history_limit=settings.history_limit,
+                subscriber_queue_size=queue_capacity,
+            )
             await fallback.start()
             return fallback
 
@@ -288,19 +293,21 @@ async def build_event_bus(settings: MessageBusSettings) -> EventBus:
             kafka_settings,
             namespace=settings.namespace,
             history_limit=settings.history_limit,
+            subscriber_queue_size=queue_capacity,
         )
         try:
             await bus.start()
-            logger.info(
-                "Connected to Kafka brokers %s", kafka_settings.brokers
-            )
+            logger.info("Connected to Kafka brokers %s", kafka_settings.brokers)
             return bus
         except (KafkaConnectionError, KafkaError, OSError) as exc:
             logger.warning(
                 "Kafka connection failed (%s); using in-memory bus",
                 exc,
             )
-            fallback = InMemoryEventBus(settings.history_limit)
+            fallback = InMemoryEventBus(
+                history_limit=settings.history_limit,
+                subscriber_queue_size=queue_capacity,
+            )
             await fallback.start()
             return fallback
 

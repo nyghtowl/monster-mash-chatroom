@@ -1,4 +1,5 @@
 """CLI entrypoint for running a monster persona worker."""
+
 from __future__ import annotations
 
 import argparse
@@ -28,9 +29,7 @@ async def _ensure_topic(settings: Settings) -> None:
     """Create the Kafka topic if it doesn't exist (no-op for in-memory mode)."""
     bus_settings = settings.bus
     if bus_settings.backend != BusBackend.KAFKA:
-        logger.debug(
-            "Skipping topic ensure for backend=%s", bus_settings.backend
-        )
+        logger.debug("Skipping topic ensure for backend=%s", bus_settings.backend)
         return
 
     kafka_settings = bus_settings.kafka
@@ -47,9 +46,7 @@ async def _ensure_topic(settings: Settings) -> None:
         await admin.create_topics([topic])
         logger.info("Kafka topic '%s' created by worker", kafka_settings.topic)
     except TopicAlreadyExistsError:
-        logger.debug(
-            "Kafka topic '%s' already exists", kafka_settings.topic
-        )
+        logger.debug("Kafka topic '%s' already exists", kafka_settings.topic)
     except IncompatibleBrokerVersion as exc:
         logger.debug(
             "Broker lacks create-topics API; topic must exist already: %s",
@@ -61,11 +58,9 @@ async def _ensure_topic(settings: Settings) -> None:
         await admin.close()
 
 
-async def run_persona_worker(
-    persona: MonsterPersona, settings: Settings
-) -> None:
+async def run_persona_worker(persona: MonsterPersona, settings: Settings) -> None:
     """Stream messages for a persona and publish replies when triggered.
-    
+
     This is the heart of the monster behavior: each persona runs as a separate
     process, consuming messages from Kafka and deciding whether to respond based
     on triggers, probability, and recent conversation history.
@@ -73,8 +68,7 @@ async def run_persona_worker(
     bus_settings = settings.bus
     if bus_settings.backend != BusBackend.KAFKA:
         logger.warning(
-            "Persona %s worker disabled: message bus backend '%s' is not "
-            "Kafka",
+            "Persona %s worker disabled: message bus backend '%s' is not " "Kafka",
             persona.key,
             bus_settings.backend,
         )
@@ -134,10 +128,7 @@ async def run_persona_worker(
             backlog.append(message)
             # Prevent monsters from responding to their own messages
             # (without this, they'd get into infinite self-reply loops)
-            if (
-                message.role == AuthorKind.MONSTER
-                and message.persona == persona.key
-            ):
+            if message.role == AuthorKind.MONSTER and message.persona == persona.key:
                 logger.debug(
                     "Skipping message from identical persona id=%s",
                     message.id,
@@ -155,9 +146,7 @@ async def run_persona_worker(
                 continue
             context = list(backlog)
             # Simulate the monster "reading" the message (makes responses feel natural)
-            read_delay = persona.reading_delay_seconds(
-                message, backlog_snapshot
-            )
+            read_delay = persona.reading_delay_seconds(message, backlog_snapshot)
             if read_delay > 0:
                 await asyncio.sleep(read_delay)
             reply = await generate_persona_reply(
@@ -193,9 +182,7 @@ async def run_persona_worker(
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments to select which monster persona to run."""
-    parser = argparse.ArgumentParser(
-        description="Run a monster persona worker"
-    )
+    parser = argparse.ArgumentParser(description="Run a monster persona worker")
     parser.add_argument("persona", choices=sorted(PERSONA_REGISTRY.keys()))
     return parser.parse_args(argv)
 
