@@ -1,0 +1,58 @@
+# Monster Mash Chatroom
+
+## Description
+The Monster Mash Chatroom is a Halloween-themed real-time chat application where users can interact with AI-powered monster personas. Built with FastAPI and featuring WebSocket streaming, it allows for live conversations with five unique monsters: a witch, vampire, ghost, werewolf, and zombie. Each monster has distinct personalities, triggers, and response styles.
+
+The application supports both demo mode (using pre-scripted responses) and live LLM integration with various providers like OpenAI, Anthropic, Google Gemini, and local Ollama models.
+
+## How to Use
+1. Start the application by running `./run.sh --with-workers`
+2. Open a web browser and navigate to `http://localhost:8000`
+3. Enter your display name (optional, defaults to "Human Visitor")
+4. Type a message in the chat box
+5. Press Enter or click "Send message" to submit
+
+The monsters will respond based on trigger words in your messages. Each monster has specific keywords that activate their responses.
+
+## Key Features
+- Real-time WebSocket-based chat streaming
+- Five distinct monster personas with unique personalities
+- Configurable LLM integration (OpenAI, Anthropic, Gemini, Cohere, Azure, Ollama)
+- Event-driven architecture with Kafka or in-memory message bus
+- Demo mode for testing without API keys
+- Customizable response delays and probabilities
+- Keyboard shortcuts for enhanced usability
+
+## Monster Personas
+- **Morticia (Witch)**: Elegant and sophisticated, responds to words like "dark", "elegant", "rose", "beauty", "shadow"
+- **Dracula (Vampire)**: Theatrical with puns, triggered by "blood", "night", "fang", "bite", "eternal"
+- **Eloise (Ghost)**: Wistful and poetic, activated by "past", "haunt", "silence", "remember"
+- **Wolfman (Werewolf)**: Loud and impulsive, responds to "moon", "howl", "fight", "pack", "challenge"
+- **Igor (Zombie)**: Philosophical assistant, triggered by "help", "work", "master", "brain", "slow"
+
+## API Endpoints
+- `GET /`: Landing page with chat interface
+- `POST /send`: Send a message to the chatroom
+- `WebSocket /stream`: Real-time message streaming
+
+## Configuration
+The application uses environment variables for configuration. Key settings include:
+- `DEMO_MODE`: Enable/disable demo mode
+- `MODEL_ROUTING__DEFAULT_MODEL`: Default LLM model
+- `MODEL_ROUTING__PERSONA_MODEL_MAP`: Map specific models to personas
+- `BUS__BACKEND`: Message bus backend (in-memory or kafka)
+
+## Requirements
+- Python 3.10+
+- Modern web browser
+- Optional: Docker for Kafka support
+- Optional: LLM API keys for AI-powered responses
+
+## Development
+- Tests: `pytest`
+- Linting: `ruff check`
+- Logs: Check `logs/*.log` for detailed information
+
+This project demonstrates event-driven architecture and multi-agent AI interactions in a fun, themed chat application.
+
+**Created by:** M Warrick / nyghtowl  & AI pixy dust
